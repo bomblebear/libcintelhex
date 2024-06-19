@@ -96,7 +96,17 @@ int ihex_rs_iterate_data(ihex_recordset_t* rs, uint_t *i, ihex_record_t **rec, u
 					return 0;
 				}
 			case IHEX_ESA:
-				offset = *(x->ihr_data) << 4;
+				//offset = *(x->ihr_data) << 4; //参考了wikipedia，如果按照大端来计算，地址偏移这里计算错了？
+				//这里只将第一个字节左移了4位（乘16），官方对于这里操作的描述为：
+				/*
+				The byte count is always 02, the address field (typically 0000) 
+				is ignored and the data field contains a 16-bit segment base address. 
+				This is multiplied by 16 and added to each subsequent data record 
+				address to form the starting address for the data. This allows 
+				addressing up to one mebibyte (1048576 bytes) of address space.
+				 */
+				//修改后的结果如下：
+				offset = ((x->ihr_data[0]<<8)|x->ihr_data[1]) << 4;  //大端排列，先获取初值，随后乘16作为地址偏置（左移4位）
 				if (off)
 				{
 					*off = offset;
@@ -108,7 +118,7 @@ int ihex_rs_iterate_data(ihex_recordset_t* rs, uint_t *i, ihex_record_t **rec, u
 				
 				break;
 			case IHEX_ELA:
-				offset = (x->ihr_data[0] << 24) + (x->ihr_data[1] << 16);
+				offset = (x->ihr_data[0] << 24) + (x->ihr_data[1] << 16); //这里就是按照大端计算，两个字节占据高16位的地址
 				if (off)
 				{
 					*off = offset;
